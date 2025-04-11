@@ -1,0 +1,73 @@
+# High Resolution Configuration for LatentSync
+# Optimized for A6000/A100/H100 GPUs
+
+model:
+  name: "latentsync-highres"
+  resolution: 512  # Can be set to 512, 768, or 1024
+  use_gradient_checkpointing: true
+  use_mixed_precision: true
+  attention_type: "xformers"  # Options: "vanilla", "xformers", "flash_attention"
+  
+  # UNet configuration
+  unet:
+    in_channels: 4
+    model_channels: 320  # Increased from 256
+    attention_resolutions: [4, 2, 1]
+    num_res_blocks: 2
+    channel_mult: [1, 2, 4, 4]
+    num_heads: 16  # Increased from 8
+    use_spatial_transformer: true
+    transformer_depth: 2
+    context_dim: 1024
+    use_checkpoint: true
+    legacy: false
+    
+  # Temporal model configuration
+  temporal:
+    enabled: true
+    window_size: 16
+    hidden_dim: 1024
+    num_layers: 3
+    bidirectional: true
+
+audio:
+  whisper_model: "openai/whisper-large-v3"  # Upgraded from base/small model
+  sample_rate: 16000
+  feature_dim: 1280  # Matches whisper-large-v3 hidden size
+  use_wav2vec: true  # Additional audio features
+  wav2vec_model: "facebook/wav2vec2-large-960h"
+  phoneme_dim: 512
+  
+training:
+  batch_size: 8  # Will be automatically adjusted based on resolution and VRAM
+  auto_batch_size: true
+  min_batch_size: 1
+  max_batch_size: 32
+  gradient_accumulation_steps: 1
+  learning_rate: 1.0e-5
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 1.0e-2
+  adam_epsilon: 1.0e-8
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 500
+  num_train_epochs: 100
+  checkpointing_steps: 5000
+  
+optimization:
+  use_xformers: true  # Memory-efficient attention
+  use_sdpa: true  # Scaled dot product attention (PyTorch 2.0+)
+  compile_model: true  # Use torch.compile for speedup
+  channels_last: true  # Use channels_last memory format for better performance
+  
+hardware:
+  gpu_type: "a100"  # Options: "a6000", "a100", "h100"
+  vram_gb: 80  # Set based on available GPU
+  precision: "bfloat16"  # Options: "float32", "float16", "bfloat16"
+  
+inference:
+  enable_tiled_processing: true  # For very high resolutions
+  tile_size: 256
+  tile_overlap: 32
+  batch_size: 1
+  num_inference_steps: 50
