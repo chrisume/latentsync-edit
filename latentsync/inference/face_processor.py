@@ -12,7 +12,7 @@ class FaceProcessor:
     """
     def __init__(
         self,
-        detector_type: str = "retinaface",
+        detector_type: str = "insightface",  # Change default from "retinaface" to "insightface"
         confidence_threshold: float = 0.9,
         target_size: int = 512,
         expand_ratio: float = 1.5,
@@ -24,13 +24,24 @@ class FaceProcessor:
         self.expand_ratio = expand_ratio
         self.device = device
         
-        # Initialize face detector
-        self.detector = get_face_detector(
-            detector_type=detector_type,
-            device=device,
-            confidence_threshold=confidence_threshold,
-            max_faces=1
-        )
+        # Initialize face detector with fallback
+        try:
+            self.detector = get_face_detector(
+                detector_type=detector_type,
+                device=device,
+                confidence_threshold=confidence_threshold,
+                max_faces=1
+            )
+        except ImportError as e:
+            print(f"Error initializing {detector_type}: {e}")
+            print(f"Falling back to InsightFace detector")
+            self.detector_type = "insightface"
+            self.detector = get_face_detector(
+                detector_type="insightface",
+                device=device,
+                confidence_threshold=confidence_threshold,
+                max_faces=1
+            )
     
     def process_frame(
         self,

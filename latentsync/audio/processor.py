@@ -110,7 +110,15 @@ class EnhancedAudioProcessor:
         Returns:
             AudioFeatures object containing processed features
         """
+        print(f"Processing audio file: {audio_path}")
+        
+        # Check if file exists
+        import os
+        if not os.path.exists(audio_path):
+            raise FileNotFoundError(f"Audio file not found: {audio_path}")
+        
         # Extract phonemes using Whisper
+        print("Extracting phonemes using Whisper...")
         whisper_output = self.whisper_model.extract_phonemes(
             audio_path=audio_path,
             language=language
@@ -118,6 +126,7 @@ class EnhancedAudioProcessor:
         
         # Get frame-level phoneme features
         phoneme_features = whisper_output["frame_features"]
+        print(f"Phoneme features shape: {phoneme_features.shape}")
         
         # Project phoneme features to desired dimension
         phoneme_features = self.phoneme_projection(phoneme_features)
@@ -132,6 +141,7 @@ class EnhancedAudioProcessor:
         
         # Extract additional audio features using Wav2Vec2 if enabled
         if self.wav2vec_model:
+            print("Extracting additional features using Wav2Vec2...")
             wav2vec_features = self._extract_wav2vec_features(audio_path)
             
             # Project wav2vec features to match phoneme dimension
@@ -150,6 +160,7 @@ class EnhancedAudioProcessor:
             # If wav2vec is not used, combined features are just phoneme features
             audio_features.combined_features = phoneme_features
         
+        print(f"Audio processing complete. Duration: {audio_features.duration:.2f}s")
         return audio_features
     
     def _extract_wav2vec_features(self, audio_path: str) -> torch.Tensor:

@@ -142,10 +142,18 @@ class RetinaFaceDetector(FaceDetector):
             from retinaface.pre_trained_models import get_model
             from retinaface.utils import load_state_dict
         except ImportError:
-            raise ImportError(
-                "RetinaFace is not installed. Please install it with: "
-                "pip install retina-face"
+            print("WARNING: RetinaFace is not installed. Falling back to InsightFace.")
+            print("To install RetinaFace: pip install retina-face")
+            # Create a fallback to InsightFace
+            self.fallback = InsightFaceDetector(
+                device=device,
+                confidence_threshold=confidence_threshold,
+                max_faces=max_faces
             )
+            self.use_fallback = True
+            return
+            
+        self.use_fallback = False
         
         # Load model
         if network == "resnet50":
@@ -173,6 +181,10 @@ class RetinaFaceDetector(FaceDetector):
         Returns:
             List of FaceDetection objects
         """
+        # If using fallback, delegate to InsightFace
+        if hasattr(self, 'use_fallback') and self.use_fallback:
+            return self.fallback.detect(image)
+            
         # Convert BGR to RGB
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
@@ -301,7 +313,7 @@ class InsightFaceDetector(FaceDetector):
 
 
 def get_face_detector(
-    detector_type: str = "retinaface",
+    detector_type: str = "insightface",  # Change default from "retinaface" to "insightface"
     device: str = "cuda",
     **kwargs
 ) -> FaceDetector:
@@ -316,9 +328,9 @@ def get_face_detector(
     Returns:
         Face detector
     """
-    if detector_type == "retinaface":
-        return RetinaFaceDetector(device=device, **kwargs)
-    elif detector_type == "insightface":
+    if detector_type == "insightface":
         return InsightFaceDetector(device=device, **kwargs)
+    elif detector_type == "retinaface":
+        return RetinaFaceDetector(device=device, **kwargs)
     else:
         raise ValueError(f"Unsupported detector type: {detector_type}")
